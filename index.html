@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>MINGO MICRO</title>
+<link id="appleIcon" rel="apple-touch-icon" href="">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap');
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: #0e0e10; color: #f4f4f6;
+    font-family: "DM Mono", monospace;
+    display: flex; flex-direction: column;
+    height: 100vh; height: 100dvh;
+    touch-action: none; user-select: none; -webkit-user-select: none;
+  }
+  header {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 8px 10px; border-bottom: 1px solid #222;
+    flex: 0 0 auto;
+  }
+  #logo { width: 28px; height: 28px; flex: 0 0 auto; }
+  .title { font-family: "Bebas Neue", sans-serif; font-size: 24px; letter-spacing: 2px; line-height: 1; }
+  .title b { color: #ff4d8d; }
+  .spacer { flex: 1 1 100%; height: 0; order: 5; display: none; }
+  .ctrl, .gnarl, .rec { font-size: 10px; padding: 5px 8px; }
+  .ctrl {
+    font-family: "DM Mono", monospace; font-size: 11px; letter-spacing: 0.5px;
+    background: #1a1a1e; color: #cfcfd6; border: 1px solid #2c2c32;
+    border-radius: 7px; padding: 6px 9px;
+  }
+  select.ctrl { -webkit-appearance: none; appearance: none; padding-right: 22px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8'><path d='M0 0 L4 5 L8 0' fill='%23888'/></svg>");
+    background-repeat: no-repeat; background-position: right 8px center; }
+  .gnarl {
+    display: flex; align-items: center; gap: 6px;
+    background: #1a1a1e; border: 1px solid #2c2c32; border-radius: 7px;
+    padding: 6px 9px; cursor: pointer; font-size: 11px; letter-spacing: 0.5px;
+  }
+  .led { width: 9px; height: 9px; border-radius: 50%; background: #3a1116;
+    box-shadow: inset 0 0 2px #000; transition: all .12s; }
+  .led.on { background: #ff3344; box-shadow: 0 0 8px #ff3344, 0 0 2px #fff inset; }
+  .rec {
+    background: #1a1a1e; border: 1px solid #2c2c32; border-radius: 7px;
+    padding: 6px 9px; cursor: pointer; font-size: 11px; letter-spacing: 0.5px;
+    color: #cfcfd6; display: flex; align-items: center; gap: 6px;
+  }
+  .rec.armed { color: #ff4d8d; border-color: #ff4d8d; }
+  .recdot { width: 9px; height: 9px; border-radius: 50%; background: #444; }
+  .rec.armed .recdot { background: #ff3344; animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+
+  #board { flex: 1 1 auto; position: relative; padding: 8px; min-height: 0; }
+  .pad {
+    position: absolute;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 10px; font-family: "Bebas Neue", sans-serif;
+    letter-spacing: 1px; font-size: 19px;
+    border: 1px solid #2a2a30; background: #17171b; color: #e8e8ee;
+    transition: transform .04s, background .08s, box-shadow .08s;
+  }
+  /* natural semitone row */
+  .pad.nat { background: #1b1b20; }
+  /* quartertone (+50c) row */
+  .pad.micro { background: #221a1f; color: #ffb8d4; border-color: #3a2630; font-size: 16px; }
+  .pad.tonic { box-shadow: inset 0 0 0 2px #ff4d8d; }
+  .pad.active { background: #ff4d8d; color: #0e0e10; transform: scale(.94); box-shadow: 0 0 14px #ff4d8d99; }
+  .pad small { font-size: 11px; opacity: .55; margin-left: 2px; }
+
+  /* preset modal */
+  #scrim { position: fixed; inset: 0; background: #000a; display: none; align-items: center; justify-content: center; z-index: 50; }
+  #scrim.open { display: flex; }
+  .modal { background: #141418; border: 1px solid #2c2c32; border-radius: 14px; width: min(420px, 92vw); max-height: 80vh; overflow: auto; padding: 16px; }
+  .modal h3 { font-family: "Bebas Neue", sans-serif; letter-spacing: 2px; font-size: 22px; margin-bottom: 12px; color: #ff4d8d; }
+  .slot { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .slot .n { width: 22px; text-align: right; opacity: .5; font-size: 12px; }
+  .slot input { flex: 1; background: #0e0e10; border: 1px solid #2c2c32; color: #f4f4f6; border-radius: 6px; padding: 7px 9px; font-family: "DM Mono", monospace; font-size: 12px; }
+  .slot select { background: #0e0e10; border: 1px solid #2c2c32; color: #f4f4f6; border-radius: 6px; padding: 7px; font-family: "DM Mono", monospace; font-size: 12px; }
+  .closebtn { margin-top: 8px; width: 100%; background: #ff4d8d; color: #0e0e10; border: none; border-radius: 8px; padding: 10px; font-family: "Bebas Neue", sans-serif; letter-spacing: 2px; font-size: 16px; cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <div id="logo"></div>
+  <div class="title"><b>MINGO</b> MICRO</div>
+  <div class="spacer"></div>
+  <div class="gnarl" id="toggle"><span class="led" id="led"></span>GNARL</div>
+  <div class="rec" id="recBtn"><span class="recdot"></span>REC</div>
+  <select class="ctrl" id="keySel" title="Key"></select>
+  <select class="ctrl" id="presetSel" title="Preset"></select>
+  <button class="ctrl" id="editPresets">EDIT</button>
+</header>
+
+<div id="board"></div>
+
+<div id="scrim">
+  <div class="modal">
+    <h3>PRESETS</h3>
+    <div id="slots"></div>
+    <button class="closebtn" id="closeModal">DONE</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- 24-EDO note naming ----------
+  // 24 quartertones per octave. "+" suffix = +50 cents above the named semitone.
+  var NAMES = ["C","C+","C#","C#+","D","D+","D#","D#+","E","E+","F","F+","F#","F#+","G","G+","G#","G#+","A","A+","A#","A#+","B","B+"];
+  // class is "nat" for the 12 semitones, "micro" for the 12 quartertone-up notes
+  function isMicro(step) { return (step % 2) === 1; }
+
+  // ---------- audio ----------
+  var AC = null, master = null, recDest = null, distNode = null, makeup = null;
+  var distortion = false;
+  var voices = {}; // padId -> { osc, gain, mult }
+
+  function ensureAudio() {
+    if (AC) return;
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    master = AC.createGain(); master.gain.value = 0.85;
+    distNode = AC.createWaveShaper(); distNode.oversample = "4x";
+    makeup = AC.createGain(); makeup.gain.value = 1;
+    setCurve();
+    // master -> dist -> makeup -> destination
+    master.connect(distNode); distNode.connect(makeup); makeup.connect(AC.destination);
+    // recording tap off makeup
+    recDest = AC.createMediaStreamDestination(); makeup.connect(recDest);
+  }
+  function setCurve() {
+    if (!distNode) return;
+    var n = 1024, c = new Float32Array(n);
+    var k = distortion ? 28 : 0; // Gnarl on vs clean
+    for (var i = 0; i < n; i++) {
+      var x = (i * 2) / n - 1;
+      c[i] = distortion ? ((1 + k) * x) / (1 + k * Math.abs(x)) : x;
+    }
+    distNode.curve = c;
+    makeup.gain.value = distortion ? 0.55 : 1; // tame the boost
+  }
+  function ac() { setCurve(); }
+
+  var BASE = 261.6256; // C4
+  function freqFor(step, octave) {
+    // step 0..23 within octave; octave offset in whole octaves
+    return BASE * Math.pow(2, (step / 24) + octave);
+  }
+
+  function noteOn(padId, step, octave) {
+    ensureAudio();
+    if (AC.state === "suspended") AC.resume();
+    if (voices[padId]) return;
+    var f = freqFor(step, octave);
+    var osc = AC.createOscillator();
+    osc.type = distortion ? "sawtooth" : "sine";
+    var g = AC.createGain();
+    g.gain.value = 0;
+    osc.frequency.value = f;
+    osc.connect(g); g.connect(master);
+    osc.start();
+    g.gain.setTargetAtTime(distortion ? 0.22 : 0.32, AC.currentTime, 0.008);
+    voices[padId] = { osc: osc, gain: g, mult: 1, base: f };
+  }
+  function noteOff(padId) {
+    var v = voices[padId];
+    if (!v) return;
+    v.gain.gain.setTargetAtTime(0, AC.currentTime, 0.06);
+    var osc = v.osc;
+    setTimeout(function () { try { osc.stop(); } catch (e) {} }, 200);
+    delete voices[padId];
+  }
+  // glide: retune ONLY the named voice toward a target (per-finger, not global)
+  function glideVoice(padId, step, octave) {
+    var v = voices[padId];
+    if (!v) return;
+    v.osc.frequency.setTargetAtTime(freqFor(step, octave), AC.currentTime, 0.008);
+  }
+
+  // ---------- layout: two-row interleaved ----------
+  // bottom row = 12 naturals (semitones), top row = 12 quartertone-ups, offset half a pad
+  var keyRoot = 0; // 0 = C
+  var OCTAVES = 1; // one octave of 24 notes shown (24 pads); naturals 12 + micros 12
+  var board = document.getElementById("board");
+  var padEls = [];
+
+  function buildBoard() {
+    board.innerHTML = "";
+    padEls = [];
+    var W = board.clientWidth - 16;
+    var H = board.clientHeight - 16;
+    var cols = 12;                 // 12 naturals on the bottom
+    var gap = 6;
+    var padW = (W - gap * (cols - 1)) / cols;
+    var rowH = (H - gap) / 2;
+    var halfShift = (padW + gap) / 2;
+
+    for (var i = 0; i < 24; i++) {
+      var step = (i + keyRoot * 2) % 24;
+      var oct = Math.floor((i + keyRoot * 2) / 24);
+      var micro = isMicro(i);      // odd steps are the +50c quartertones
+      var pad = document.createElement("div");
+      pad.className = "pad " + (micro ? "micro" : "nat");
+      if (step === 0) pad.className += " tonic";
+      pad.textContent = NAMES[step];
+      pad.dataset.step = step;
+      pad.dataset.oct = oct;
+
+      var colIndex = Math.floor(i / 2); // 0..11, the natural's column
+      var x, y;
+      if (micro) {
+        // nest in the seam to the RIGHT of its natural; last one (B+) tucks
+        // inside the right margin rather than overflowing
+        x = 8 + colIndex * (padW + gap) + halfShift;
+        if (x + padW > 8 + W) x = 8 + W - padW; // clamp final pad
+        y = 8;
+      } else {
+        x = 8 + colIndex * (padW + gap);
+        y = 8 + rowH + gap;
+      }
+      pad.style.left = x + "px";
+      pad.style.top = y + "px";
+      pad.style.width = padW + "px";
+      pad.style.height = rowH + "px";
+      board.appendChild(pad);
+      padEls.push(pad);
+    }
+  }
+
+  // ---------- pointer handling (multi-touch + glide) ----------
+  var pointerPad = {}; // pointerId -> padEl
+  function padFromPoint(x, y) {
+    var el = document.elementFromPoint(x, y);
+    if (el && el.classList.contains("pad")) return el;
+    return null;
+  }
+  function activate(pad, pid) {
+    if (!pad) return;
+    var step = parseInt(pad.dataset.step, 10);
+    var oct = parseInt(pad.dataset.oct, 10);
+    var padId = "p" + pid;
+    // pointer already holding a different pad -> slide THIS finger's voice only
+    if (pointerPad[pid] && pointerPad[pid] !== pad) {
+      pointerPad[pid].classList.remove("active");
+      glideVoice(padId, step, oct);
+      pointerPad[pid] = pad;
+      pad.classList.add("active");
+      return;
+    }
+    pointerPad[pid] = pad;
+    pad.classList.add("active");
+    noteOn(padId, step, oct);
+  }
+  function release(pid) {
+    if (pointerPad[pid]) pointerPad[pid].classList.remove("active");
+    noteOff("p" + pid);
+    delete pointerPad[pid];
+  }
+  board.addEventListener("pointerdown", function (e) {
+    e.preventDefault();
+    activate(padFromPoint(e.clientX, e.clientY), e.pointerId);
+  });
+  board.addEventListener("pointermove", function (e) {
+    if (!pointerPad[e.pointerId]) return;  // only slide a finger that's already down
+    var pad = padFromPoint(e.clientX, e.clientY);
+    if (pad && pad !== pointerPad[e.pointerId]) activate(pad, e.pointerId);
+  });
+  board.addEventListener("pointerup", function (e) { release(e.pointerId); });
+  board.addEventListener("pointercancel", function (e) { release(e.pointerId); });
+  // safety net: a pointerup that lands outside the board still releases its voice
+  window.addEventListener("pointerup", function (e) { if (pointerPad[e.pointerId]) release(e.pointerId); });
+
+  // ---------- key selector ----------
+  var keySel = document.getElementById("keySel");
+  var KEY_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  KEY_NAMES.forEach(function (n, i) {
+    var o = document.createElement("option"); o.value = i; o.textContent = "KEY " + n; keySel.appendChild(o);
+  });
+  keySel.addEventListener("change", function () {
+    keyRoot = parseInt(this.value, 10); buildBoard();
+  });
+
+  // ---------- presets (localStorage) ----------
+  var presets = JSON.parse(localStorage.getItem("mingomicro_presets") || "null");
+  if (!presets) {
+    presets = [];
+    for (var i = 0; i < 20; i++) presets.push({ name: "PRESET " + (i + 1), key: 0 });
+  }
+  function savePresets() { localStorage.setItem("mingomicro_presets", JSON.stringify(presets)); }
+  var presetSel = document.getElementById("presetSel");
+  function refreshPresetSelect() {
+    presetSel.innerHTML = "";
+    presets.forEach(function (p, i) {
+      var o = document.createElement("option"); o.value = i; o.textContent = p.name; presetSel.appendChild(o);
+    });
+  }
+  presetSel.addEventListener("change", function () {
+    var p = presets[parseInt(this.value, 10)];
+    keyRoot = p.key; keySel.value = p.key; buildBoard();
+  });
+  function buildSlots() {
+    var box = document.getElementById("slots"); box.innerHTML = "";
+    presets.forEach(function (p, i) {
+      var row = document.createElement("div"); row.className = "slot";
+      var num = document.createElement("div"); num.className = "n"; num.textContent = (i + 1);
+      var name = document.createElement("input"); name.value = p.name;
+      name.addEventListener("input", function () { presets[i].name = this.value; savePresets(); refreshPresetSelect(); });
+      var key = document.createElement("select");
+      KEY_NAMES.forEach(function (kn, ki) { var o = document.createElement("option"); o.value = ki; o.textContent = kn; if (ki === p.key) o.selected = true; key.appendChild(o); });
+      key.addEventListener("change", function () { presets[i].key = parseInt(this.value, 10); savePresets(); refreshPresetSelect(); });
+      row.appendChild(num); row.appendChild(name); row.appendChild(key); box.appendChild(row);
+    });
+  }
+  document.getElementById("editPresets").addEventListener("click", function () { buildSlots(); document.getElementById("scrim").classList.add("open"); });
+  document.getElementById("closeModal").addEventListener("click", function () { document.getElementById("scrim").classList.remove("open"); });
+  document.getElementById("scrim").addEventListener("click", function (e) { if (e.target === this) this.classList.remove("open"); });
+
+  // ---------- gnarl ----------
+  document.getElementById("toggle").addEventListener("click", function () {
+    ensureAudio();
+    distortion = !distortion;
+    document.getElementById("led").classList.toggle("on", distortion);
+    setCurve();
+    // update any notes currently held so the change is audible immediately
+    var t = distortion ? "sawtooth" : "sine";
+    for (var id in voices) {
+      voices[id].osc.type = t;
+      voices[id].gain.gain.setTargetAtTime(distortion ? 0.22 : 0.32, AC.currentTime, 0.02);
+    }
+  });
+
+  // ---------- recording ----------
+  var mediaRec = null, chunks = [], recording = false;
+  document.getElementById("recBtn").addEventListener("click", function () {
+    ensureAudio();
+    var btn = this;
+    if (!recording) {
+      chunks = [];
+      mediaRec = new MediaRecorder(recDest.stream);
+      mediaRec.ondataavailable = function (e) { if (e.data.size) chunks.push(e.data); };
+      mediaRec.onstop = function () {
+        var blob = new Blob(chunks, { type: "audio/webm" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        var stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+        a.href = url; a.download = "mingomicro-" + stamp + ".webm";
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      };
+      mediaRec.start();
+      recording = true; btn.classList.add("armed");
+    } else {
+      mediaRec.stop();
+      recording = false; btn.classList.remove("armed");
+    }
+  });
+
+  // ---------- flamingo logo + PWA ----------
+  function flamingoSVG() {
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+      '<circle cx="32" cy="32" r="30" fill="#0e0e10" stroke="#ff4d8d" stroke-width="2"/>' +
+      '<path d="M26 50 C26 38 24 34 28 28 C31 23 30 18 34 16 C39 14 42 18 40 22 C45 21 47 25 43 28 C40 30 38 30 36 32 C34 40 34 44 36 50 Z" fill="#ff4d8d"/>' +
+      '<circle cx="37" cy="19" r="1.5" fill="#0e0e10"/>' +
+      '<rect x="30" y="17" width="12" height="5" rx="2.5" fill="#0e0e10"/>' +
+      '<circle cx="33" cy="19.5" r="2" fill="#ff4d8d"/><circle cx="39" cy="19.5" r="2" fill="#ff4d8d"/>' +
+      '</svg>';
+  }
+  function iconDataURL() { return "data:image/svg+xml;utf8," + encodeURIComponent(flamingoSVG()); }
+  document.getElementById("logo").innerHTML = flamingoSVG();
+
+  (function pwa() {
+    var icon = iconDataURL();
+    document.getElementById("appleIcon").href = icon;
+    var manifest = {
+      name: "MINGO MICRO", short_name: "MICRO", display: "standalone",
+      background_color: "#0e0e10", theme_color: "#0e0e10", orientation: "any",
+      start_url: ".", icons: [
+        { src: icon, sizes: "192x192", type: "image/svg+xml", purpose: "any" },
+        { src: icon, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
+      ]
+    };
+    var mlink = document.createElement("link"); mlink.rel = "manifest";
+    mlink.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" }));
+    document.head.appendChild(mlink);
+    if ("serviceWorker" in navigator) {
+      var sw = 'self.addEventListener("install",e=>self.skipWaiting());' +
+               'self.addEventListener("activate",e=>self.clients.claim());' +
+               'self.addEventListener("fetch",e=>{e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)))});';
+      navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw], { type: "text/javascript" }))).catch(function(){});
+    }
+  })();
+
+  window.addEventListener("resize", buildBoard);
+  refreshPresetSelect();
+  buildBoard();
+})();
+</script>
+</body>
+</html>
